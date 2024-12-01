@@ -1,0 +1,112 @@
+Pada catatan ini saya ingin belajar tentang cara membuat datacenter server sendiri dan dapat diakses secara public
+
+My Computer Specification
+Intel Core I5 11400F
+GTX 1660 Super
+RAM 24 GB
+SSD 128 GB
+HDD More 1TB
+
+What Aplication Will I Use and will to learn
+1. Hyper-V
+2. Proxmox
+3. Mikrotik
+4. Surely Ubuntu hihihi
+5. ZeroTier
+5. Nextcloud
+
+1. Getting Started With Hyper-V
+2. Configuration Nextcloud Server With Ubuntu OS
+3. Configuration Network with Zero Tier
+Install ZeroTier On Ubuntu
+curl -s https://install.zerotier.com | sudo bash
+
+Join to ZeroTier Server
+sudo zerotier-cli join "idzerotierserver"
+
+Show Network
+sudo zerotier-cli listnetworks
+
+Route Physycal Network to Zerotier and then Remote Computer can access local network using computer target
+Advance - Manage Routes, make destination is ip server all ip subnet, and via is ip computer server ip zerotier in server network
+
+Enable IPv4 Forwarding on the exit node
+On the computer acting as the VPN exit node:
+
+sudo nano /etc/sysctl.conf
+
+Add the line:
+
+/etc/sysctl.conf
+net.ipv4.ip_forward = 1
+
+Tell the kernel to reload settings:
+
+sudo sysctl -p
+
+Check that settings were correctly applied:
+
+sudo sysctl net.ipv4.ip_forward
+
+If you've joined (and authorized!) your exit node to your network then you are ready to begin configuring it. Start by setting a few environment variables that we will use later:
+
+Save it
+Get the name of your ZeroTier interface, it will start with zt:
+ip link show
+export ZT_IF="name zerotiernetwork"
+Next, get the name of the regular WAN interface to the internet:
+
+In our case it was eth0
+
+export WAN_IF=eth0
+
+Enable NAT and IP masquerading:
+
+sudo iptables -t nat -A POSTROUTING -o $WAN_IF -j MASQUERADE
+
+Allow traffic forwarding:
+
+sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+Allow traffic forwarding from the ZeroTier interface to the WAN interface:
+
+sudo iptables -A FORWARD -i $ZT_IF -o $WAN_IF -j ACCEPT
+
+Make iptables rules persist after reboot:
+
+sudo apt-get install iptables-persistent
+
+Save your new iptables rules:
+
+sudo netfilter-persistent save
+Configure your network
+Now that your exit node is set up we need to configure your ZeroTier network to advertise a Default Route so that other nodes know that the exit node can route traffic to the internet.
+
+Central > Network > Settings > Managed Routes
+
+0.0.0.0/0 via <zerotier-ip-of-router-node>
+
+4. Configuration Proxmox
+Setup Disk For VMC ISO dan BACKUP
+zpool create -f vm-storage /dev/sdb
+zfs list
+zfs create storage1/vmc
+Install one server OS ubuntu
+Install windows 7
+
+Setup Container Mysql Server
+
+Setup container nextcloud
+1. Install XFCE Container Ubuntu That Support Nextcloud
+2. Install Apache2
+ '''bash sudo apt install apache2 '''
+3. Install PHP components
+Setup container wordpress
+Setup container nodred
+
+Install Mikrotik for Network Configuration
+
+5. Configuration Network and With Mikrotik
+6. Move Disk and Add Disk
+7. Simulating Backup Data
+8.
