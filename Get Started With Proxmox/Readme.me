@@ -1,112 +1,202 @@
-Pada catatan ini saya ingin belajar tentang cara membuat datacenter server sendiri dan dapat diakses secara public
+# Panduan Membuat Server Sendiri dengan Proxmox dan ZeroTier
 
-My Computer Specification
-Intel Core I5 11400F
-GTX 1660 Super
-RAM 24 GB
-SSD 128 GB
-HDD More 1TB
+### Spesifikasi Komputer
+- **Prosesor**: Intel Core i5 11400F
+- **Grafis**: GTX 1660 Super
+- **RAM**: 24 GB
+- **Penyimpanan**: SSD 128 GB, HDD 1TB+
 
-What Aplication Will I Use and will to learn
+### Aplikasi yang Digunakan dan Dipelajari
 1. Hyper-V
 2. Proxmox
 3. Mikrotik
-4. Surely Ubuntu hihihi
+4. Ubuntu
 5. ZeroTier
-5. Nextcloud
+6. Nextcloud
 
-1. Getting Started With Hyper-V
-2. Configuration Nextcloud Server With Ubuntu OS
-3. Configuration Network with Zero Tier
-Install ZeroTier On Ubuntu
-curl -s https://install.zerotier.com | sudo bash
+---
 
-Join to ZeroTier Server
-sudo zerotier-cli join "idzerotierserver"
+## 1. Started and Installation proxmox
 
-Show Network
-sudo zerotier-cli listnetworks
+### 1.1 Install Proxmox
+Untuk menginstal Proxmox VE (Virtual Environment):
 
-Route Physycal Network to Zerotier and then Remote Computer can access local network using computer target
-Advance - Manage Routes, make destination is ip server all ip subnet, and via is ip computer server ip zerotier in server network
+1. **Download Proxmox VE ISO** dari situs resmi [Proxmox](https://www.proxmox.com).
+2. Gunakan alat seperti `Rufus` atau `balenaEtcher` untuk membuat bootable USB.
+3. Boot komputer Anda menggunakan USB yang telah dibuat dan ikuti instruksi untuk menginstal Proxmox.
+### 1.2 Install Proxmox Backup Server
+Proxmox Backup Server akan digunakan untuk menyimpan cadangan data dan VM.
 
-Enable IPv4 Forwarding on the exit node
-On the computer acting as the VPN exit node:
+1. Update dan install Proxmox Backup Server:
+    ```bash
+    apt update
+    apt install proxmox-backup-server
+    ```
 
-sudo nano /etc/sysctl.conf
+### 1.3 Konfigurasi Jaringan Internal dan WAN
+Pastikan untuk mengonfigurasi jaringan internal dan WAN agar Proxmox dan backup server dapat terhubung.
 
-Add the line:
+---
 
-/etc/sysctl.conf
+## 2. Konfigurasi Nextcloud Server dengan Ubuntu
+
+### 2.1 Install Ubuntu pada Proxmox
+1. Buat sebuah **Virtual Machine** baru di Proxmox dengan sistem operasi Ubuntu.
+2. Download ISO Ubuntu terbaru dari [Ubuntu Downloads](https://ubuntu.com/download/desktop).
+3. Ikuti langkah-langkah untuk menginstal Ubuntu pada mesin virtual.
+
+### 2.2 Instalasi Nextcloud
+Setelah Ubuntu terpasang, install **Nextcloud** dengan mengikuti langkah-langkah berikut:
+
+1. Install Apache2 dan PHP:
+    ```bash
+    sudo apt update
+    sudo apt install apache2 php libapache2-mod-php php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bz2 unzip -y
+    ```
+
+2. Download Nextcloud dan ekstrak:
+    ```bash
+    wget https://download.nextcloud.com/server/releases/nextcloud-<version>.zip -O /tmp/nextcloud.zip
+    sudo unzip -q /tmp/nextcloud.zip -d /var/www/
+    sudo chown -R www-data:www-data /var/www/nextcloud
+    ```
+
+3. Konfigurasi Apache untuk Nextcloud:
+    ```bash
+    sudo nano /etc/apache2/sites-available/nextcloud.conf
+    ```
+    Masukkan konfigurasi berikut:
+    ```
+    Alias /nextcloud "/var/www/nextcloud/"
+    <Directory /var/www/nextcloud/>
+        Options +FollowSymlinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    ```
+
+4. Aktifkan konfigurasi dan restart Apache:
+    ```bash
+    sudo a2ensite nextcloud
+    sudo systemctl restart apache2
+    ```
+
+---
+
+## 3. Konfigurasi Jaringan dengan ZeroTier
+
+ZeroTier memungkinkan Anda untuk membuat jaringan virtual pribadi (VPN) untuk menghubungkan perangkat secara aman melalui internet.
+
+### 3.1 Instalasi ZeroTier pada Ubuntu
+Untuk menghubungkan Ubuntu ke jaringan ZeroTier, lakukan instalasi dengan perintah berikut:
+
+```bash
+curl -s https://install.zerotier.com | sudo 
+```
+Setelah itu, hubungkan ke jaringan zerotier
+```bash
+sudo zerotier-cli join "Network ID"
+```
+### 3.2 Konfigurasi Routing dan IPv4 Forwading
+Untuk mengkonfigurasi node keluar zerotier, pastikan IPv4 Forwading diaktifkan
+1. edit file sysclt.conf
+ ```bash
+ sudo nano /etc/sysctl.conf
+ ```
+2. Tambahkan baris berikut:
+```bash
 net.ipv4.ip_forward = 1
-
-Tell the kernel to reload settings:
-
+```
+3. Terapkan pengaturan:
+```bash
 sudo sysctl -p
+```
+4. Konfigurasi NAT dan forwarding dengan iptables:
 
-Check that settings were correctly applied:
-
-sudo sysctl net.ipv4.ip_forward
-
-If you've joined (and authorized!) your exit node to your network then you are ready to begin configuring it. Start by setting a few environment variables that we will use later:
-
-Save it
-Get the name of your ZeroTier interface, it will start with zt:
-ip link show
-export ZT_IF="name zerotiernetwork"
-Next, get the name of the regular WAN interface to the internet:
-
-In our case it was eth0
-
-export WAN_IF=eth0
-
-Enable NAT and IP masquerading:
-
-sudo iptables -t nat -A POSTROUTING -o $WAN_IF -j MASQUERADE
-
-Allow traffic forwarding:
-
+```bash
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-
-Allow traffic forwarding from the ZeroTier interface to the WAN interface:
-
-sudo iptables -A FORWARD -i $ZT_IF -o $WAN_IF -j ACCEPT
-
-Make iptables rules persist after reboot:
-
+sudo iptables -A FORWARD -i zt0 -o eth0 -j ACCEPT
+```
+5. Install iptables-persistent untuk menyimpan aturan:
+```bash
+Copy code
 sudo apt-get install iptables-persistent
-
-Save your new iptables rules:
-
 sudo netfilter-persistent save
-Configure your network
-Now that your exit node is set up we need to configure your ZeroTier network to advertise a Default Route so that other nodes know that the exit node can route traffic to the internet.
-
-Central > Network > Settings > Managed Routes
-
+```
+6. Tambahkan rute default ke ZeroTier Network: Di panel ZeroTier, pada tab Managed Routes, tambahkan rute:
+```php
 0.0.0.0/0 via <zerotier-ip-of-router-node>
+```
+4. Konfigurasi Proxmox untuk Penyimpanan dan Backup
+4.1 Setup Disk untuk VM dan Backup
+Buat penyimpanan ZFS di Proxmox:
 
-4. Configuration Proxmox
-Setup Disk For VMC ISO dan BACKUP
+bash
+Copy code
 zpool create -f vm-storage /dev/sdb
-zfs list
+Buat volume ZFS untuk mesin virtual:
+
+bash
+Copy code
 zfs create storage1/vmc
-Install one server OS ubuntu
-Install windows 7
+Install mesin virtual Ubuntu dan Windows 7 di Proxmox.
 
-Setup Container Mysql Server
+4.2 Setup Kontainer MySQL
+Untuk membuat kontainer dengan MySQL, lakukan langkah-langkah berikut:
 
-Setup container nextcloud
-1. Install XFCE Container Ubuntu That Support Nextcloud
-2. Install Apache2
- '''bash sudo apt install apache2 '''
-3. Install PHP components
-Setup container wordpress
-Setup container nodred
+bash
+Copy code
+sudo apt update
+sudo apt install mariadb-server mariadb-client -y
+sudo service mariadb start
+sudo mysql_secure_installation
+mysql -u root -p
+CREATE DATABASE mydatabase;
+GRANT ALL PRIVILEGES ON mydatabase.* TO 'user'@'localhost' IDENTIFIED BY 'password';
+FLUSH PRIVILEGES;
+EXIT;
 
-Install Mikrotik for Network Configuration
+## 5. Konfigurasi Mikrotik untuk Pengaturan Jaringan
+Mikrotik dapat digunakan untuk mengatur jaringan dengan lebih lanjut. Anda perlu menginstal Mikrotik RouterOS dan mengonfigurasi koneksi sesuai dengan kebutuhan jaringan Anda.
 
-5. Configuration Network and With Mikrotik
-6. Move Disk and Add Disk
-7. Simulating Backup Data
-8.
+## 6. Pengaturan dan Backup Data
+Setelah semua konfigurasi selesai, Anda bisa mulai melakukan simulasi backup data. Pastikan data yang penting dicadangkan secara teratur untuk menjaga integritas sistem.
+
+## 7. Pengaturan SSH dan Tunnel dengan Serveo
+### 7.1 Install OpenSSH Server
+Install OpenSSH untuk mengakses server melalui SSH:
+
+```bash
+sudo apt install openssh-server
+```
+Edit file konfigurasi SSH:
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+Ubah pengaturan berikut:
+```bash
+PasswordAuthentication yes
+PermitRootLogin yes
+```
+### 7.2 Setup Serveo Tunnel
+Untuk membuat tunnel SSH yang aman dan dapat diakses secara publik menggunakan Serveo.net:
+```bash
+ssh -R 80:localhost:8080 serveo.net
+```
+Anda dapat mengganti port dan domain sesuai dengan kebutuhan.
+
+## 8. Penutup
+Dengan mengikuti langkah-langkah di atas, Anda akan dapat mengonfigurasi server pribadi menggunakan Proxmox dan ZeroTier, serta mengaksesnya dari jaringan lokal maupun publik secara aman. Pastikan untuk selalu menjaga konfigurasi jaringan dan backup data Anda.
+
+Jika Anda memiliki pertanyaan atau masalah, silakan buka issue di halaman ini!
+
+License
+MIT License
+
+```yaml
+
+---
+
+Ini adalah kode yang dapat digunakan sebagai **README.md** untuk proyek Anda di GitHub. Kode ini mengatur setiap langkah dengan jelas dan mudah dipahami. Anda hanya perlu menyesuaikan beberapa nilai placeholder (seperti `<version>`, `<NetworkID>`, dan `<zerotier-ip-of-router-node>`) dengan informasi yang sesuai.
+```
