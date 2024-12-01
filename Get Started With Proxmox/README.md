@@ -128,25 +128,24 @@ sudo netfilter-persistent save
 ```php
 0.0.0.0/0 via <zerotier-ip-of-router-node>
 ```
-4. Konfigurasi Proxmox untuk Penyimpanan dan Backup
-4.1 Setup Disk untuk VM dan Backup
+## 4. Konfigurasi Proxmox untuk Penyimpanan dan Backup
+### 4.1 Setup Disk untuk VM dan Backup
 Buat penyimpanan ZFS di Proxmox:
 
-bash
-Copy code
-zpool create -f vm-storage /dev/sdb
+```bash
+zpool create -f vm-storage /dev/sdd
+```
 Buat volume ZFS untuk mesin virtual:
 
-bash
-Copy code
+```bash
 zfs create storage1/vmc
+```
 Install mesin virtual Ubuntu dan Windows 7 di Proxmox.
 
-4.2 Setup Kontainer MySQL
+### 4.2 Setup Kontainer MySQL
 Untuk membuat kontainer dengan MySQL, lakukan langkah-langkah berikut:
 
-bash
-Copy code
+```bash
 sudo apt update
 sudo apt install mariadb-server mariadb-client -y
 sudo service mariadb start
@@ -156,7 +155,7 @@ CREATE DATABASE mydatabase;
 GRANT ALL PRIVILEGES ON mydatabase.* TO 'user'@'localhost' IDENTIFIED BY 'password';
 FLUSH PRIVILEGES;
 EXIT;
-
+```
 ## 5. Konfigurasi Mikrotik untuk Pengaturan Jaringan
 Mikrotik dapat digunakan untuk mengatur jaringan dengan lebih lanjut. Anda perlu menginstal Mikrotik RouterOS dan mengonfigurasi koneksi sesuai dengan kebutuhan jaringan Anda.
 
