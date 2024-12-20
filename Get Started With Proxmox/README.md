@@ -156,9 +156,21 @@ GRANT ALL PRIVILEGES ON mydatabase.* TO 'user'@'localhost' IDENTIFIED BY 'passwo
 FLUSH PRIVILEGES;
 EXIT;
 ```
-## 5. Konfigurasi Mikrotik untuk Pengaturan Jaringan
-Mikrotik dapat digunakan untuk mengatur jaringan dengan lebih lanjut. Anda perlu menginstal Mikrotik RouterOS dan mengonfigurasi koneksi sesuai dengan kebutuhan jaringan Anda.
+## 5. Konfigurasi Advance Jaringan
+### 5.1 Multiple Ip Access
+Tambahkan Routing
+Tambahkan rute statis untuk jaringan eth1 agar bisa diakses dari luar. Misalnya, jika jaringan eth1 adalah 172.30.80.0/20:
 
+```bash
+ip route add 172.30.80.0/20 dev eth1
+```
+Jika perlu agar rute ini tetap ada setelah reboot, tambahkan perintah tersebut ke /etc/network/interfaces di bagian konfigurasi eth1:
+
+```plaintext
+iface eth1 inet static
+        address 172.30.80.101/20
+        up ip route add 172.30.80.0/20 dev eth1
+```
 ## 6. Pengaturan dan Backup Data
 Setelah semua konfigurasi selesai, Anda bisa mulai melakukan simulasi backup data. Pastikan data yang penting dicadangkan secara teratur untuk menjaga integritas sistem.
 
