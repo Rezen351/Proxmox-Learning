@@ -202,7 +202,33 @@ Dengan mengikuti langkah-langkah di atas, Anda akan dapat mengonfigurasi server 
 
 Jika Anda memiliki pertanyaan atau masalah, silakan buka issue di halaman ini!
 
+## 9. Setup Network
+### 9.2 Setup VLAN
+1. Install Virtual Switch
+```bash
+apt install openvswitch-switch
+```
+2.  On Network Create OVS Bridge
+3.  Create OVS intPort, add name vlan100 and vlan tag repaeat bridge same OVS Bridge
+4.  Done
+### 9.2 Setup Netgate for Network Manager
+1. Install Netgate by VM on Proxmox
+2. Next2 and wait until reboot
+3. Setup WAN LAN1 dan LAN2
+4. Setup VLAN for LAN1
+5. Setup DHCP server and NAT Hibrid also Firewall rule
+6. Setup Netbird IP set as Gateway for access some IP in All Router
+
+### 9.3 Setup SSH Server by Cloudflare
+1. Setup Tunnel Zero Trust
+2. Add Tunnel SSH
+3. Go Access and Add Aplication
+4. Choice Aplication Hosted
+5. Enter Field some domain
+6. Scroll Down until Identity providers Warp Authentication
 License
+7. Setting Policies
+8. Choice Browser Rendering SSH
 MIT License
 
 ```yaml
